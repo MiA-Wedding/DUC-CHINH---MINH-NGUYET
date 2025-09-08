@@ -215,38 +215,34 @@ function initRevealIO(){
   els.forEach(el=>io.observe(el));
 }
 
-/* ========= Music control: Auto-play ngay khi vào trang ========= */
-function initMusic() {
+/* ========= Music control (always try autoplay; toggle doesn't persist) ========= */
+function initMusic(){
   const audio = $('#bg-music');
   const btn = $('#music-toggle');
-  if (!audio || !btn) return;
-
+  if(!audio || !btn) return;
   audio.src = WEDDING_CONFIG.music || '';
   audio.volume = 0.6;
-  audio.playsInline = true; // Giúp auto-play trên mobile
+  audio.playsInline = true;
   audio.autoplay = true;
 
-  const setIcon = () => btn.textContent = audio.paused ? '🔈' : '🔊';
+  const setIcon = ()=> btn.textContent = audio.paused ? '🔈' : '🔊';
 
-  // Thử phát nhạc ngay khi load
-  const tryPlay = () => {
-    audio.play().then(setIcon).catch(() => {
-      // Nếu bị chặn, chờ click đầu tiên rồi phát
-      const unlock = () => {
-        audio.play().then(setIcon);
-        document.removeEventListener('click', unlock);
-        document.removeEventListener('touchstart', unlock);
-      };
-      document.addEventListener('click', unlock, { once: true });
-      document.addEventListener('touchstart', unlock, { once: true });
-    });
-  };
-  tryPlay();
+  // try to autoplay now
+  audio.play().then(setIcon).catch(()=>{
+    // if blocked, attempt on first user gesture
+    const onGesture = ()=> {
+      audio.play().then(setIcon).catch(()=>{});
+      window.removeEventListener('click', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+    window.addEventListener('click', onGesture, {once:true});
+    window.addEventListener('touchstart', onGesture, {once:true});
+  });
 
-  // Nút bấm để bật/tắt nhạc
-  btn.addEventListener('click', (e) => {
+  // toggle for current session only
+  btn.addEventListener('click', (e)=>{
     e.stopPropagation();
-    if (audio.paused) audio.play(); else audio.pause();
+    if(audio.paused) audio.play(); else audio.pause();
     setIcon();
   });
 
@@ -254,7 +250,6 @@ function initMusic() {
   audio.addEventListener('pause', setIcon);
   setIcon();
 }
-
 
 /* ========= Effects (original behavior) ========= */
 function initEffects(){
